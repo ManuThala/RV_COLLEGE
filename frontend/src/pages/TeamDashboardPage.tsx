@@ -104,7 +104,7 @@ export default function TeamDashboardPage() {
                 Team ID
               </p>
               <p className="text-lg font-mono text-cyan-300 break-all">
-                {team.id.slice(0, 12)}...
+                {team.id}
               </p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4">

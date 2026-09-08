@@ -37,12 +37,13 @@ function RegisterPage() {
   );
   const [error, setError] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field: keyof Team, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (blockingSession) {
@@ -81,18 +82,54 @@ function RegisterPage() {
       return;
     }
 
-    const team: Team = {
-      ...form,
-      id: form.id || `TEAM-${Date.now()}`,
-      name,
-      player1,
-      player2,
-      createdAt: new Date().toISOString(),
-    };
+    setError("");
+    setIsSubmitting(true);
 
-    saveTeam(team);
-    setCurrentTeam(team);
-    navigate("/registration-success");
+    try {
+      const apiUrl =
+        import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/teams`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, player1, player2 }),
+      });
+      const result = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+        team?: {
+          _id: string;
+          createdAt: string;
+          name: string;
+          player1: string;
+          player2: string;
+        };
+      };
+
+      if (!response.ok || !result.success || !result.team) {
+        throw new Error(result.message ?? "Team registration failed.");
+      }
+
+      const team: Team = {
+        id: result.team._id,
+        name: result.team.name,
+        player1: result.team.player1,
+        player2: result.team.player2,
+        createdAt: result.team.createdAt,
+      };
+      saveTeam(team);
+      setCurrentTeam(team);
+      navigate("/registration-success");
+    } catch (submitError) {
+      setError(
+        submitError instanceof TypeError
+          ? "Unable to reach the backend. Start the backend server and try again."
+          : submitError instanceof Error
+            ? submitError.message
+            : "Team registration failed. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -154,7 +191,10 @@ function RegisterPage() {
             )}
 
           <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
-            <fieldset disabled={Boolean(blockingSession)} className="contents">
+            <fieldset
+              disabled={Boolean(blockingSession) || isSubmitting}
+              className="contents"
+            >
               <label className="md:col-span-2 block">
                 <span className="mb-2 block text-sm font-medium text-slate-200">
                   Team name *
@@ -208,8 +248,11 @@ function RegisterPage() {
                     {MAX_LEVEL} levels · randomized cybersecurity challenges
                   </span>
                 </div>
-                <button type="submit" className="cyber-button-primary">
-                  Continue to Dashboard
+                <button
+                  type="submit"
+                  className="cyber-button-primary disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSubmitting ? "Registering..." : "Continue to Dashboard"}
                 </button>
               </div>
             </fieldset>

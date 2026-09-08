@@ -33,6 +33,7 @@ import {
   MAX_LEVEL,
   summarizeResult,
 } from "../services/gameService";
+import { shuffle } from "../utils/shuffle";
 import { upsertLeaderboard } from "../services/leaderboardService";
 import {
   getSession,
@@ -73,6 +74,14 @@ function GamePage() {
     useState<LevelResult | null>(null);
   const [rejectedOptions, setRejectedOptions] = useState<string[]>([]);
   const [acceptedOption, setAcceptedOption] = useState<string | null>(null);
+  const [databaseQuestion, setDatabaseQuestion] = useState<
+    | Question
+    | Level2Question
+    | PhishingRound
+    | MalwareRound
+    | IncidentScenario
+    | null
+  >(null);
 
   // Synchronous submit lock (a ref, not state, so a second click firing before the first
   // click's state update has been applied still sees the lock) — prevents double execution.
@@ -90,6 +99,86 @@ function GamePage() {
   );
 
   const currentLevel = session?.currentLevel ?? 1;
+
+  useEffect(() => {
+    setDatabaseQuestion(null);
+    if (!session) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+
+    fetch(
+      `${apiUrl}/questions/${currentLevel}/${session.selectedQuestionIds[currentLevel]}`,
+      {
+        signal: controller.signal,
+      },
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Database question request failed");
+        const result = (await response.json()) as {
+          success: boolean;
+          item?:
+            | Question
+            | Level2Question
+            | PhishingRound
+            | MalwareRound
+            | IncidentScenario;
+        };
+        if (result.success && result.item) {
+          const item =
+            currentLevel === 2 && "options" in result.item
+              ? {
+                  ...result.item,
+                  options: result.item.options.map((option) =>
+                    typeof option === "string" ? option : option.text,
+                  ),
+                }
+              : currentLevel === 3 && "emails" in result.item
+                ? {
+                    ...result.item,
+                    emails: result.item.emails.map((email) => ({
+                      ...email,
+                      senderName: email.senderName ?? "",
+                      dateTime: email.dateTime ?? "",
+                      link: email.link ?? "",
+                      attachment: email.attachment ?? "",
+                      suspicious: email.suspicious ?? false,
+                      reasons: email.reasons ?? [],
+                    })),
+                  }
+                : currentLevel === 4 && "files" in result.item
+                  ? {
+                      ...result.item,
+                      files: result.item.files.map((file) => ({
+                        ...file,
+                        extension: file.extension ?? "",
+                        type: file.type ?? "File",
+                        size: file.size ?? "",
+                        modified: file.modified ?? "",
+                        source: file.source ?? "",
+                        suspicious: file.suspicious ?? false,
+                        reasons: file.reasons ?? [],
+                      })),
+                    }
+                  : result.item;
+          setDatabaseQuestion(
+            item as
+              | Question
+              | Level2Question
+              | PhishingRound
+              | MalwareRound
+              | IncidentScenario,
+          );
+        }
+      })
+      .catch(() => {
+        // Keep the existing local question as a fallback while the API is unavailable.
+      });
+
+    return () => controller.abort();
+  }, [currentLevel, session?.selectedQuestionIds[currentLevel]]);
 
   // Redirect users without a valid, active session away from /challenge.
   useEffect(() => {
@@ -280,12 +369,43 @@ function GamePage() {
     setMessage("Time expired. The next level has started.");
   };
 
-  const levelData = session
+  const localLevelData = session
     ? getQuestionByLevel(
         currentLevel,
         session.selectedQuestionIds[currentLevel],
       )
     : undefined;
+
+  const rawLevelData = databaseQuestion ?? localLevelData;
+  const levelData =
+    currentLevel === 2 && rawLevelData && "options" in rawLevelData
+      ? {
+          ...rawLevelData,
+          options: rawLevelData.options.map((option) =>
+            typeof option === "string" ? option : option.text,
+          ),
+        }
+      : rawLevelData;
+
+  useEffect(() => {
+    if (currentLevel !== 5 || !levelData || !("actions" in levelData)) {
+      if (currentLevel !== 5) setOrderedActions([]);
+      return;
+    }
+
+    const actions = Array.isArray(levelData.actions) ? levelData.actions : [];
+    const availableIds = actions.map((action) => action.id);
+    const savedOrder = session?.displayOrder[currentLevel] ?? [];
+    const validSavedOrder = savedOrder.filter((id) =>
+      availableIds.includes(id),
+    );
+    const nextOrder =
+      validSavedOrder.length === availableIds.length
+        ? validSavedOrder
+        : shuffle(availableIds);
+
+    setOrderedActions(nextOrder);
+  }, [currentLevel, levelData, session?.displayOrder]);
 
   // Reorder choices for display using the session-stable shuffle order. Correctness checks
   // in evaluateAnswer below always use levelData (the raw, unshuffled data) and match by
@@ -299,7 +419,7 @@ function GamePage() {
         )
       : levelData;
 
-  const evaluateAnswer = () => {
+  const evaluateAnswer = async () => {
     if (!session || !levelData) return;
     if (submittingRef.current) return;
     if (currentLevel !== 5 && !selectedValue) return;
@@ -312,35 +432,50 @@ function GamePage() {
     const currentPenalty = (updatedSession.penalties[currentLevel] ?? 0) + 5;
 
     let isCorrect = false;
-
-    if (currentLevel === 1 && "correctOptionId" in levelData) {
-      isCorrect = selectedValue === (levelData as Question).correctOptionId;
-    }
-
-    if (currentLevel === 2 && "correctOption" in levelData) {
-      isCorrect = selectedValue === (levelData as Level2Question).correctOption;
-    }
-
-    if (currentLevel === 3 && "correctEmailId" in levelData) {
-      isCorrect = selectedValue === (levelData as PhishingRound).correctEmailId;
-    }
-
-    if (currentLevel === 4 && "correctFileId" in levelData) {
-      isCorrect = selectedValue === (levelData as MalwareRound).correctFileId;
-    }
-
+    let correctAnswer = "the correct answer";
+    let answerExplanation = "";
+    const orderedIds = orderedActions;
     if (currentLevel === 5) {
-      const scenario = levelData as IncidentScenario;
-      const orderedIds = orderedActions;
-      const matches = orderedIds.filter(
-        (id, index) => scenario.correctSequence[index] === id,
-      ).length;
-      const accuracy = matches / scenario.correctSequence.length;
-      isCorrect = accuracy >= 0.8;
       updatedSession.answerSubmissions = {
         ...updatedSession.answerSubmissions,
         [currentLevel]: orderedIds,
       };
+    }
+
+    try {
+      const apiUrl =
+        import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+      const response = await fetch(
+        `${apiUrl}/questions/${currentLevel}/${session.selectedQuestionIds[currentLevel]}/answer`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            currentLevel === 5 ? { orderedIds } : { optionId: selectedValue },
+          ),
+        },
+      );
+      const result = (await response.json()) as {
+        success?: boolean;
+        correct?: boolean;
+        correctAnswer?: string;
+        explanation?: string;
+        message?: string;
+      };
+      if (!response.ok || !result.success)
+        throw new Error(result.message ?? "Answer validation failed.");
+      isCorrect = Boolean(result.correct);
+      correctAnswer = result.correctAnswer ?? correctAnswer;
+      answerExplanation = result.explanation ?? "";
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to validate the answer.",
+      );
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      return;
     }
 
     if (!isCorrect) {
@@ -355,7 +490,6 @@ function GamePage() {
       updatedSession.disqualified = true;
       updatedSession.completionStatus = "timed_out";
 
-      const correctAnswer = getCorrectAnswerText(currentLevel, levelData);
       const failedResult = summarizeResult(
         currentLevel,
         0,
@@ -363,7 +497,7 @@ function GamePage() {
         0,
         "failed",
       );
-      failedResult.explanation = `Your team is eliminated because the selected answer was incorrect. Correct answer: ${correctAnswer}`;
+      failedResult.explanation = `Your team is eliminated because the selected answer was incorrect. Correct answer: ${correctAnswer}${answerExplanation ? ` ${answerExplanation}` : ""}`;
       failedResult.tip = "";
       updatedSession.levelResults = {
         ...updatedSession.levelResults,
@@ -580,7 +714,7 @@ function GamePage() {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-white">{round.title}</h2>
           <div className="grid gap-4">
-            {round.emails.map((email) => (
+            {(round.emails ?? []).map((email) => (
               <button
                 key={email.id}
                 type="button"
@@ -622,7 +756,7 @@ function GamePage() {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-white">{round.title}</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {round.files.map((file) => (
+            {(round.files ?? []).map((file) => (
               <button
                 key={file.id}
                 type="button"
@@ -654,6 +788,9 @@ function GamePage() {
 
     if (currentLevel === 5) {
       const scenario = levelData as IncidentScenario;
+      const scenarioActions = Array.isArray(scenario.actions)
+        ? scenario.actions
+        : [];
       return (
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-white">{scenario.title}</h2>
@@ -669,9 +806,7 @@ function GamePage() {
             >
               <div className="space-y-3">
                 {orderedActions.map((id) => {
-                  const action = scenario.actions.find(
-                    (item) => item.id === id,
-                  );
+                  const action = scenarioActions.find((item) => item.id === id);
                   if (!action) return null;
                   return <SortableAction key={action.id} action={action} />;
                 })}
@@ -791,60 +926,6 @@ function GamePage() {
       )}
     </div>
   );
-}
-
-function getCorrectAnswerText(level: number, data: unknown): string {
-  const record = typeof data === "object" && data !== null ? data : null;
-
-  if (
-    level === 1 &&
-    record &&
-    "options" in record &&
-    "correctOptionId" in record
-  ) {
-    const question = data as Question;
-    return (
-      question.options.find((option) => option.id === question.correctOptionId)
-        ?.text ?? "the strongest password option"
-    );
-  }
-  if (level === 2 && record && "correctOption" in record) {
-    return String((data as Level2Question).correctOption);
-  }
-  if (
-    level === 3 &&
-    record &&
-    "emails" in record &&
-    "correctEmailId" in record
-  ) {
-    const round = data as PhishingRound;
-    const email = round.emails.find((item) => item.id === round.correctEmailId);
-    return email
-      ? `${email.senderName} <${email.senderEmail}>`
-      : "the phishing email";
-  }
-  if (level === 4 && record && "files" in record && "correctFileId" in record) {
-    const round = data as MalwareRound;
-    return (
-      round.files.find((item) => item.id === round.correctFileId)?.name ??
-      "the malicious file"
-    );
-  }
-  if (
-    level === 5 &&
-    record &&
-    "actions" in record &&
-    "correctSequence" in record
-  ) {
-    const scenario = data as IncidentScenario;
-    const actionMap = new Map(
-      scenario.actions.map((action) => [action.id, action.text]),
-    );
-    return scenario.correctSequence
-      .map((id) => actionMap.get(id) ?? id)
-      .join(" -> ");
-  }
-  return "the correct answer";
 }
 
 function TotalClearedBadge({ session }: { session: GameSession }) {

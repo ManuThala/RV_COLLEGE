@@ -1,21 +1,43 @@
-import { clearSession, getLeaderboard, getSession, saveLeaderboard, saveSession } from './storageService'
-import type { GameSession, LeaderboardEntry } from '../types'
+import {
+  clearSession,
+  getLeaderboard,
+  getSession,
+  saveLeaderboard,
+  saveSession,
+} from "./storageService";
+import type { GameSession, LeaderboardEntry } from "../types";
 
-export const buildLeaderboardEntry = (session: GameSession): LeaderboardEntry => {
-  const completedAt = session.completionStatus === 'completed' ? new Date().toISOString() : null
-  const totalTime = session.totalTime || Object.values(session.levelResults).reduce((sum, item) => sum + item.totalTime, 0)
-  const penalties = Object.values(session.penalties || {}).reduce((sum, val) => sum + (val ?? 0), 0)
-  const incorrectAttempts = Object.values(session.incorrectAttempts || {}).reduce((sum, val) => sum + (val ?? 0), 0)
-  const levelTimes: Record<number, number> = {}
+export const buildLeaderboardEntry = (
+  session: GameSession,
+): LeaderboardEntry => {
+  const completedAt =
+    session.completionStatus === "completed" ? new Date().toISOString() : null;
+  const totalTime =
+    session.totalTime ||
+    Object.values(session.levelResults).reduce(
+      (sum, item) => sum + item.totalTime,
+      0,
+    );
+  const penalties = Object.values(session.penalties || {}).reduce(
+    (sum, val) => sum + (val ?? 0),
+    0,
+  );
+  const incorrectAttempts = Object.values(
+    session.incorrectAttempts || {},
+  ).reduce((sum, val) => sum + (val ?? 0), 0);
+  const levelTimes: Record<number, number> = {};
   for (let level = 1; level <= 5; level += 1) {
-    levelTimes[level] = session.levelResults[level]?.totalTime ?? session.levelCompletionTimes[level] ?? 0
+    levelTimes[level] =
+      session.levelResults[level]?.totalTime ??
+      session.levelCompletionTimes[level] ??
+      0;
   }
 
-  const status: LeaderboardEntry['status'] = session.disqualified
-    ? 'disqualified'
-    : session.completionStatus === 'completed'
-      ? 'completed'
-      : 'playing'
+  const status: LeaderboardEntry["status"] = session.disqualified
+    ? "disqualified"
+    : session.completionStatus === "completed"
+      ? "completed"
+      : "playing";
 
   return {
     id: session.id,
@@ -35,51 +57,67 @@ export const buildLeaderboardEntry = (session: GameSession): LeaderboardEntry =>
     status,
     completedAt,
     createdAt: new Date(session.gameStartTimestamp).toISOString(),
-  }
-}
+  };
+};
 
 export const upsertLeaderboard = (session: GameSession) => {
-  const entries = getLeaderboard()
-  const entry = buildLeaderboardEntry(session)
-  const filtered = entries.filter((item) => item.teamId !== session.teamId)
-  filtered.push(entry)
+  const entries = getLeaderboard();
+  const entry = buildLeaderboardEntry(session);
+  const filtered = entries.filter((item) => item.teamId !== session.teamId);
+  filtered.push(entry);
   const sorted = filtered.sort((a, b) => {
-    if (a.totalTime !== b.totalTime) return a.totalTime - b.totalTime
-    if (a.incorrectAttempts !== b.incorrectAttempts) return a.incorrectAttempts - b.incorrectAttempts
-    if (a.penalties !== b.penalties) return a.penalties - b.penalties
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  })
-  saveLeaderboard(sorted)
-}
+    if (a.totalTime !== b.totalTime) return a.totalTime - b.totalTime;
+    if (a.incorrectAttempts !== b.incorrectAttempts)
+      return a.incorrectAttempts - b.incorrectAttempts;
+    if (a.penalties !== b.penalties) return a.penalties - b.penalties;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+  saveLeaderboard(sorted);
+  const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+  void fetch(`${apiUrl}/leaderboard/${session.teamId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entry }),
+  }).catch(() => {
+    // Local leaderboard remains available if the backend is temporarily offline.
+  });
+};
 
 export const getRankingLabel = (rank: number) => {
-  if (rank === 1) return '🏆'
-  if (rank === 2) return '🥈'
-  if (rank === 3) return '🥉'
-  return `${rank}`
-}
+  if (rank === 1) return "🏆";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return `${rank}`;
+};
 
 export const setTeamDisqualified = (teamId: string, disqualified: boolean) => {
-  const entries = getLeaderboard()
+  const entries = getLeaderboard();
   const updated = entries.map((entry) =>
     entry.teamId === teamId
-      ? { ...entry, status: disqualified ? ('disqualified' as const) : entry.completedAt ? ('completed' as const) : ('playing' as const) }
+      ? {
+          ...entry,
+          status: disqualified
+            ? ("disqualified" as const)
+            : entry.completedAt
+              ? ("completed" as const)
+              : ("playing" as const),
+        }
       : entry,
-  )
-  saveLeaderboard(updated)
+  );
+  saveLeaderboard(updated);
 
-  const session = getSession()
+  const session = getSession();
   if (session && session.teamId === teamId) {
-    saveSession({ ...session, disqualified })
+    saveSession({ ...session, disqualified });
   }
-}
+};
 
 export const resetTeamProgress = (teamId: string) => {
-  const entries = getLeaderboard().filter((entry) => entry.teamId !== teamId)
-  saveLeaderboard(entries)
+  const entries = getLeaderboard().filter((entry) => entry.teamId !== teamId);
+  saveLeaderboard(entries);
 
-  const session = getSession()
+  const session = getSession();
   if (session && session.teamId === teamId) {
-    clearSession()
+    clearSession();
   }
-}
+};

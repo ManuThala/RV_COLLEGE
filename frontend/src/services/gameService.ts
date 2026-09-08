@@ -192,26 +192,46 @@ export const buildSessionFromTeam = (
 // persist a session-stable shuffle order (so a refresh shows the same arrangement).
 export const getDisplayKeys = (level: number, data: unknown): string[] => {
   if (!data) return [];
-  if (level === 1) return (data as Question).options.map((option) => option.id);
-  if (level === 2) return (data as Level2Question).options;
+  if (level === 1)
+    return Array.isArray((data as Question).options)
+      ? (data as Question).options.map((option) => option.id)
+      : [];
+  if (level === 2) {
+    const options = (data as { options?: unknown[] }).options ?? [];
+    return options.map((option) =>
+      typeof option === "string"
+        ? option
+        : typeof option === "object" && option !== null && "text" in option
+          ? String(option.text)
+          : String(option),
+    );
+  }
   if (level === 3)
-    return (data as PhishingRound).emails.map((email) => email.id);
-  if (level === 4) return (data as MalwareRound).files.map((file) => file.id);
+    return Array.isArray((data as PhishingRound).emails)
+      ? (data as PhishingRound).emails.map((email) => email.id)
+      : [];
+  if (level === 4)
+    return Array.isArray((data as MalwareRound).files)
+      ? (data as MalwareRound).files.map((file) => file.id)
+      : [];
   if (level === 5)
-    return (data as IncidentScenario).actions.map((action) => action.id);
+    return Array.isArray((data as IncidentScenario).actions)
+      ? (data as IncidentScenario).actions.map((action) => action.id)
+      : [];
   return [];
 };
 
 const reorderByKeys = <T>(
-  items: T[],
+  items: T[] | undefined,
   keys: string[],
   getKey: (item: T) => string,
 ): T[] => {
-  const byKey = new Map(items.map((item) => [getKey(item), item] as const));
+  const safeItems = Array.isArray(items) ? items : [];
+  const byKey = new Map(safeItems.map((item) => [getKey(item), item] as const));
   const ordered = keys
     .map((key) => byKey.get(key))
     .filter((item): item is T => item !== undefined);
-  const remaining = items.filter((item) => !keys.includes(getKey(item)));
+  const remaining = safeItems.filter((item) => !keys.includes(getKey(item)));
   return [...ordered, ...remaining];
 };
 
@@ -236,35 +256,55 @@ export const applyDisplayOrder = <
     const q = data as unknown as Question;
     return {
       ...q,
-      options: reorderByKeys(q.options, order, (option) => option.id),
+      options: reorderByKeys(
+        Array.isArray(q.options) ? q.options : [],
+        order,
+        (option) => option.id,
+      ),
     } as unknown as T;
   }
   if (level === 2) {
     const q = data as unknown as Level2Question;
     return {
       ...q,
-      options: reorderByKeys(q.options, order, (option) => option),
+      options: reorderByKeys(
+        Array.isArray(q.options) ? q.options : [],
+        order,
+        (option) => String(option),
+      ),
     } as unknown as T;
   }
   if (level === 3) {
     const round = data as unknown as PhishingRound;
     return {
       ...round,
-      emails: reorderByKeys(round.emails, order, (email) => email.id),
+      emails: reorderByKeys(
+        Array.isArray(round.emails) ? round.emails : [],
+        order,
+        (email) => email.id,
+      ),
     } as unknown as T;
   }
   if (level === 4) {
     const round = data as unknown as MalwareRound;
     return {
       ...round,
-      files: reorderByKeys(round.files, order, (file) => file.id),
+      files: reorderByKeys(
+        Array.isArray(round.files) ? round.files : [],
+        order,
+        (file) => file.id,
+      ),
     } as unknown as T;
   }
   if (level === 5) {
     const scenario = data as unknown as IncidentScenario;
     return {
       ...scenario,
-      actions: reorderByKeys(scenario.actions, order, (action) => action.id),
+      actions: reorderByKeys(
+        Array.isArray(scenario.actions) ? scenario.actions : [],
+        order,
+        (action) => action.id,
+      ),
     } as unknown as T;
   }
   return data;
