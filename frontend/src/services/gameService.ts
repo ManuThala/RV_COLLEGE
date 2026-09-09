@@ -145,20 +145,37 @@ export const selectRandomSet = (previousSetId?: string): string => {
   return chosen.id;
 };
 
+const chooseRandomId = (ids: string[], previousId?: string): string => {
+  const alternatives = ids.filter((id) => id !== previousId);
+  const pool = alternatives.length > 0 ? alternatives : ids;
+  return pool[Math.floor(Math.random() * pool.length)] ?? "";
+};
+
+export const selectRandomQuestions = (
+  previousSelected?: Record<number, string>,
+) => {
+  const levelPools = [
+    getLevel1QuestionPool(),
+    getLevel2QuestionPool(),
+    getLevel3RoundPool(),
+    getLevel4RoundPool(),
+    getLevel5ScenarioPool(),
+  ];
+
+  return {
+    1: chooseRandomId(levelPools[0].map((item) => item.id), previousSelected?.[1]),
+    2: chooseRandomId(levelPools[1].map((item) => item.id), previousSelected?.[2]),
+    3: chooseRandomId(levelPools[2].map((item) => item.id), previousSelected?.[3]),
+    4: chooseRandomId(levelPools[3].map((item) => item.id), previousSelected?.[4]),
+    5: chooseRandomId(levelPools[4].map((item) => item.id), previousSelected?.[5]),
+  };
+};
+
 export const buildSessionFromTeam = (
   team: Team,
-  priorSetId?: string,
+  previousSelected?: Record<number, string>,
 ): GameSession => {
-  const setId = selectRandomSet(priorSetId);
-  const chosenSet = resolveQuizSet(setId);
-
-  const selected = {
-    1: chosenSet.level1QuestionId,
-    2: chosenSet.level2QuestionId,
-    3: chosenSet.level3RoundId,
-    4: chosenSet.level4RoundId,
-    5: chosenSet.level5ScenarioId,
-  };
+  const selected = selectRandomQuestions(previousSelected);
 
   const now = Date.now();
   const session: GameSession = {
@@ -176,7 +193,7 @@ export const buildSessionFromTeam = (
     levelCompletionTimes: {},
     totalTime: 0,
     completionStatus: "in_progress",
-    lastQuizCombinationUsed: setId,
+    lastQuizCombinationUsed: `RANDOM-${Date.now()}`,
     levelResults: {},
     currentLevelLocked: false,
     challengeStartedAt: now,

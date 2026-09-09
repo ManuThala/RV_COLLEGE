@@ -58,10 +58,7 @@ export default function TeamDashboardPage() {
       return;
     }
 
-    const session = buildSessionFromTeam(
-      team,
-      existing?.lastQuizCombinationUsed,
-    );
+    const session = buildSessionFromTeam(team, existing?.selectedQuestionIds);
     saveSession(session);
     navigate("/challenge");
   };

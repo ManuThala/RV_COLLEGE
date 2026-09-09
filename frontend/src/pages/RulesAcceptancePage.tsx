@@ -68,10 +68,7 @@ export default function RulesAcceptancePage() {
     }
 
     // The timer for Level 1 starts exactly now, at the moment the team accepts and begins the challenge.
-    const session = buildSessionFromTeam(
-      team,
-      existing?.lastQuizCombinationUsed,
-    );
+    const session = buildSessionFromTeam(team, existing?.selectedQuestionIds);
     saveSession(session);
     navigate("/challenge");
   };
