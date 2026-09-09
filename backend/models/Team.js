@@ -28,7 +28,5 @@ const teamSchema = new mongoose.Schema(
 );
 
 teamSchema.index({ nameKey: 1 }, { unique: true, sparse: true });
-teamSchema.index({ player1Key: 1 }, { unique: true, sparse: true });
-teamSchema.index({ player2Key: 1 }, { unique: true, sparse: true });
 
 export const Team = mongoose.model("Team", teamSchema);

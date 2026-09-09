@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Team } from "../models/Team.js";
 
 export const connectDatabase = async () => {
   const connectionString = process.env.MONGODB_URI;
@@ -12,6 +13,7 @@ export const connectDatabase = async () => {
 
   try {
     await mongoose.connect(connectionString);
+    await Team.syncIndexes();
     console.log("MongoDB connected");
     return true;
   } catch (error) {

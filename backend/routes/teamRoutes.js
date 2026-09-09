@@ -27,34 +27,15 @@ router.post("/", async (request, response) => {
   const player1Key = normalize(player1);
   const player2Key = normalize(player2);
 
-  if (player1Key === player2Key) {
-    return response.status(409).json({
-      success: false,
-      message: "Player 1 and Player 2 must be different people.",
-    });
-  }
-
   try {
     const existingTeam = await Team.findOne({
-      $or: [
-        { nameKey },
-        { player1Key },
-        { player2Key },
-        { player1Key: player2Key },
-        { player2Key: player1Key },
-        { name: new RegExp(`^${name.trim()}$`, "i") },
-        { player1: new RegExp(`^${player1.trim()}$`, "i") },
-        { player2: new RegExp(`^${player1.trim()}$`, "i") },
-        { player1: new RegExp(`^${player2.trim()}$`, "i") },
-        { player2: new RegExp(`^${player2.trim()}$`, "i") },
-      ],
+      $or: [{ nameKey }, { name: new RegExp(`^${name.trim()}$`, "i") }],
     });
 
     if (existingTeam) {
       return response.status(409).json({
         success: false,
-        message:
-          "Team name and player names must be unique. One already exists.",
+        message: "That team name is already registered. Please choose another.",
       });
     }
 
@@ -71,7 +52,7 @@ router.post("/", async (request, response) => {
     if (error.code === 11000) {
       return response.status(409).json({
         success: false,
-        message: "Team name or player name is already registered.",
+        message: "That team name is already registered. Please choose another.",
       });
     }
     return response
