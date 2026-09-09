@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { Team } from "../models/Team.js";
 import { isDatabaseConnected } from "../config/database.js";
+import { AdminSettings } from "../models/AdminSettings.js";
 
 const router = Router();
 
@@ -15,6 +16,18 @@ router.post("/", async (request, response) => {
   }
 
   const { name, player1, player2 } = request.body;
+
+  const competitionSettings = await AdminSettings.findOne({
+    key: "competition",
+  }).lean();
+  if (!competitionSettings?.started || competitionSettings.ended) {
+    return response.status(403).json({
+      success: false,
+      message: competitionSettings?.ended
+        ? "The competition has ended. New registrations are closed."
+        : "The competition has not started yet. Please wait for the organizer to begin.",
+    });
+  }
 
   if (!name?.trim() || !player1?.trim() || !player2?.trim()) {
     return response.status(400).json({

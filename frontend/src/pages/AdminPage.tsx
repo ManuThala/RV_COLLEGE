@@ -52,8 +52,11 @@ import {
 } from "../services/gameService";
 import { quizSets } from "../data/quizSets";
 import type { QuizSetLevelKey, Winner } from "../types";
-import { syncAdminData } from "../services/adminService";
-import { clearBackendAdminData } from "../services/adminService";
+import {
+  clearBackendAdminData,
+  saveBackendCompetitionSettings,
+  syncAdminData,
+} from "../services/adminService";
 
 type QuestionRow = {
   id: string;
@@ -144,7 +147,9 @@ function AdminConsole() {
         await clearBackendAdminData();
         clearAllDemoData();
         refresh();
-        setMessage("All registered teams, sessions, and leaderboard data were cleared.");
+        setMessage(
+          "All registered teams, sessions, and leaderboard data were cleared.",
+        );
       } catch (error) {
         setMessage(
           error instanceof Error
@@ -181,39 +186,57 @@ function AdminConsole() {
     );
   };
 
-  const handleStartCompetition = () => {
-    saveCompetitionSettings({
+  const handleStartCompetition = async () => {
+    const nextSettings = {
       ...competitionSettings,
       started: true,
       ended: false,
       startedAt: new Date().toISOString(),
-    });
-    refresh();
-    setMessage("Competition started. Registration is now open.");
+    };
+    try {
+      await saveBackendCompetitionSettings(nextSettings);
+      saveCompetitionSettings(nextSettings);
+      refresh();
+      setMessage("Competition started. Registration is now open on all devices.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to start competition.");
+    }
   };
 
-  const handleEndCompetition = () => {
+  const handleEndCompetition = async () => {
     if (
       !window.confirm(
         "End the competition? This closes new registrations and new challenge starts.",
       )
     )
       return;
-    saveCompetitionSettings({
+    const nextSettings = {
       ...competitionSettings,
       ended: true,
       endedAt: new Date().toISOString(),
-    });
-    refresh();
-    setMessage("Competition ended. New registrations are closed.");
+    };
+    try {
+      await saveBackendCompetitionSettings(nextSettings);
+      saveCompetitionSettings(nextSettings);
+      refresh();
+      setMessage("Competition ended. New registrations are closed on all devices.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to end competition.");
+    }
   };
 
-  const handleToggleLiveMode = () => {
-    saveCompetitionSettings({
+  const handleToggleLiveMode = async () => {
+    const nextSettings = {
       ...competitionSettings,
       liveMode: !competitionSettings.liveMode,
-    });
-    refresh();
+    };
+    try {
+      await saveBackendCompetitionSettings(nextSettings);
+      saveCompetitionSettings(nextSettings);
+      refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update live mode.");
+    }
   };
 
   const handleToggleQuestion = (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, ArrowLeft, Shield, UserRound } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { MAX_LEVEL } from "../services/gameService";
@@ -7,6 +7,7 @@ import {
   getCurrentTeam,
   getSession,
   saveTeam,
+  saveCompetitionSettings,
   setCurrentTeam,
 } from "../services/storageService";
 import type { Team } from "../types";
@@ -15,7 +16,9 @@ function RegisterPage() {
   const navigate = useNavigate();
   const existingTeam = getCurrentTeam();
   const activeSession = getSession();
-  const competitionSettings = getCompetitionSettings();
+  const [competitionSettings, setCompetitionSettings] = useState(
+    getCompetitionSettings,
+  );
 
   // Prevent a team from creating a second active session while one is already in progress on this device.
   const blockingSession =
@@ -38,6 +41,25 @@ function RegisterPage() {
   const [error, setError] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+    fetch(`${apiUrl}/competition/settings`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Competition status unavailable.");
+        const result = (await response.json()) as {
+          success?: boolean;
+          settings?: typeof competitionSettings;
+        };
+        if (result.success && result.settings) {
+          setCompetitionSettings(result.settings);
+          saveCompetitionSettings(result.settings);
+        }
+      })
+      .catch(() => {
+        // Use cached settings when the backend is temporarily unavailable.
+      });
+  }, []);
 
   const handleChange = (field: keyof Team, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));

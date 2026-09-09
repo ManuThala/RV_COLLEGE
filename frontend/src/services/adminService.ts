@@ -101,3 +101,20 @@ export const clearBackendAdminData = async () => {
     throw new Error(result.message ?? "Unable to clear backend data.");
   }
 };
+
+export const saveBackendCompetitionSettings = async (
+  settings: CompetitionSettings,
+) => {
+  const response = await fetch(`${apiUrl}/admin/settings`, {
+    method: "PATCH",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+  const result = (await response.json()) as {
+    success?: boolean;
+    message?: string;
+  };
+  if (!response.ok || !result.success) {
+    throw new Error(result.message ?? "Unable to save competition settings.");
+  }
+};

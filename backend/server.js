@@ -7,6 +7,7 @@ import leaderboardRoutes from "./routes/leaderboardRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import competitionRoutes from "./routes/competitionRoutes.js";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use("/api/questions", questionRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/competition", competitionRoutes);
 
 app.get("/api/health", (_request, response) => {
   response.json({
