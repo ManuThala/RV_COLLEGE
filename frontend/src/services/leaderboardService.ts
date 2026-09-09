@@ -77,12 +77,7 @@ export const upsertLeaderboard = (session: GameSession) => {
   });
 };
 
-export const getRankingLabel = (rank: number) => {
-  if (rank === 1) return "🏆";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
-  return `${rank}`;
-};
+export const getRankingLabel = (rank: number) => `${rank}`;
 
 export const setTeamDisqualified = (teamId: string, disqualified: boolean) => {
   const entries = getLeaderboard();
