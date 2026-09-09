@@ -36,9 +36,11 @@ import {
 import { shuffle } from "../utils/shuffle";
 import { upsertLeaderboard } from "../services/leaderboardService";
 import {
+  clearSession,
   getSession,
   recordQuestionStat,
   saveSession,
+  setCurrentTeam,
 } from "../services/storageService";
 import LevelResultScreen from "../components/LevelResultScreen";
 import type {
@@ -564,6 +566,8 @@ function GamePage() {
     if (!session) return;
 
     if (currentLevelResult?.status === "failed") {
+      clearSession();
+      setCurrentTeam(null);
       navigate("/leaderboard");
       return;
     }
