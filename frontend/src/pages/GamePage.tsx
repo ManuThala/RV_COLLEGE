@@ -368,15 +368,18 @@ function GamePage() {
     : undefined;
 
   const rawLevelData = databaseQuestion ?? localLevelData;
-  const levelData =
-    currentLevel === 2 && rawLevelData && "options" in rawLevelData
-      ? {
-          ...rawLevelData,
-          options: rawLevelData.options.map((option) =>
-            typeof option === "string" ? option : option.text,
-          ),
-        }
-      : rawLevelData;
+  const levelData = useMemo(
+    () =>
+      currentLevel === 2 && rawLevelData && "options" in rawLevelData
+        ? {
+            ...rawLevelData,
+            options: rawLevelData.options.map((option) =>
+              typeof option === "string" ? option : option.text,
+            ),
+          }
+        : rawLevelData,
+    [currentLevel, rawLevelData],
+  );
 
   useEffect(() => {
     if (currentLevel !== 5 || !levelData || !("actions" in levelData)) {
