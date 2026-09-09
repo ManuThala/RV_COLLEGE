@@ -316,6 +316,7 @@ function GamePage() {
     // Defense in depth: never overwrite a level that has already been completed.
     if (current.levelResults[current.currentLevel]?.status === "completed")
       return;
+    if (current.disqualified) return;
 
     const levelStart =
       current.levelStartTimestamp ?? current.gameStartTimestamp;
@@ -323,12 +324,13 @@ function GamePage() {
       1,
       Math.ceil((Date.now() - levelStart) / 1000),
     );
-    // A timeout is not itself an "incorrect attempt" / mistake — it's tracked and
-    // penalized separately (a fixed +10s), so the wrong-answer attempt count is untouched.
+    // A timeout eliminates the team instead of advancing it to the next level.
     const existingAttempts =
       current.incorrectAttempts[current.currentLevel] ?? 0;
     const penalty = (current.penalties[current.currentLevel] ?? 0) + 10;
     const updatedSession: GameSession = { ...current };
+    updatedSession.disqualified = true;
+    updatedSession.completionStatus = "timed_out";
     updatedSession.penalties = {
       ...current.penalties,
       [current.currentLevel]: penalty,
@@ -340,9 +342,12 @@ function GamePage() {
         elapsedSeconds,
         existingAttempts,
         penalty,
-        "timeout",
+        "failed",
       ),
     };
+    updatedSession.levelResults[current.currentLevel].explanation =
+      "Your team is eliminated because the timer expired before the challenge was completed.";
+    updatedSession.levelResults[current.currentLevel].tip = "";
     updatedSession.totalTime = Object.values(
       updatedSession.levelResults,
     ).reduce((sum, item) => sum + item.totalTime, 0);
@@ -351,22 +356,12 @@ function GamePage() {
       current.selectedQuestionIds[current.currentLevel],
       "incorrect",
     );
-
-    if (current.currentLevel === MAX_LEVEL) {
-      updatedSession.completionStatus = "completed";
-      saveSession(updatedSession);
-      upsertLeaderboard(updatedSession);
-      setSession(updatedSession);
-      navigate("/results");
-      return;
-    }
-
-    updatedSession.currentLevel = current.currentLevel + 1;
-    updatedSession.levelStartTimestamp = Date.now();
+    levelResolvedRef.current = true;
     saveSession(updatedSession);
     upsertLeaderboard(updatedSession);
     setSession(updatedSession);
-    setMessage("Time expired. The next level has started.");
+    setCurrentLevelResult(updatedSession.levelResults[current.currentLevel]);
+    setShowLevelResult(true);
   };
 
   const localLevelData = session
