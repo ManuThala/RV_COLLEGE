@@ -84,6 +84,8 @@ function GamePage() {
     | IncidentScenario
     | null
   >(null);
+  const [databaseQuestionResolved, setDatabaseQuestionResolved] =
+    useState(false);
 
   // Synchronous submit lock (a ref, not state, so a second click firing before the first
   // click's state update has been applied still sees the lock) — prevents double execution.
@@ -104,6 +106,7 @@ function GamePage() {
 
   useEffect(() => {
     setDatabaseQuestion(null);
+    setDatabaseQuestionResolved(false);
     if (!session) {
       return;
     }
@@ -174,8 +177,12 @@ function GamePage() {
               | IncidentScenario,
           );
         }
+        setDatabaseQuestionResolved(true);
       })
       .catch(() => {
+        if (!controller.signal.aborted) {
+          setDatabaseQuestionResolved(true);
+        }
         // Keep the existing local question as a fallback while the API is unavailable.
       });
 
@@ -367,7 +374,9 @@ function GamePage() {
       )
     : undefined;
 
-  const rawLevelData = databaseQuestion ?? localLevelData;
+  const rawLevelData = databaseQuestionResolved
+    ? databaseQuestion ?? localLevelData
+    : undefined;
   const levelData = useMemo(
     () =>
       currentLevel === 2 && rawLevelData && "options" in rawLevelData
@@ -812,7 +821,9 @@ function GamePage() {
   const levelDefinition =
     getCurrentLevelDefinition(currentLevel) ?? LEVEL_DEFINITIONS[0];
   const canSubmit =
-    !isSubmitting && (currentLevel === 5 || Boolean(selectedValue));
+    !isSubmitting &&
+    Boolean(levelData) &&
+    (currentLevel === 5 || Boolean(selectedValue));
 
   return (
     <div className="min-h-screen px-4 py-8 text-slate-100">
@@ -881,7 +892,13 @@ function GamePage() {
             </div>
           )}
 
-          {renderLevelContent()}
+          {levelData ? (
+            renderLevelContent()
+          ) : (
+            <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6 text-center text-cyan-100">
+              Loading challenge...
+            </div>
+          )}
 
           <div className="mt-8 flex justify-end">
             <button
