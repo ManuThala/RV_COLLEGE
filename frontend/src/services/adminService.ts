@@ -87,3 +87,17 @@ export const syncAdminData = async () => {
   saveLeaderboard(leaderboard);
   saveCompetitionSettings(settingsResult.settings);
 };
+
+export const clearBackendAdminData = async () => {
+  const response = await fetch(`${apiUrl}/admin/data`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  const result = (await response.json()) as {
+    success?: boolean;
+    message?: string;
+  };
+  if (!response.ok || !result.success) {
+    throw new Error(result.message ?? "Unable to clear backend data.");
+  }
+};

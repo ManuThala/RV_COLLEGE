@@ -53,6 +53,7 @@ import {
 import { quizSets } from "../data/quizSets";
 import type { QuizSetLevelKey, Winner } from "../types";
 import { syncAdminData } from "../services/adminService";
+import { clearBackendAdminData } from "../services/adminService";
 
 type QuestionRow = {
   id: string;
@@ -133,15 +134,24 @@ function AdminConsole() {
         )
       : null;
 
-  const handleClearDemo = () => {
+  const handleClearDemo = async () => {
     if (
       window.confirm(
         "Are you sure? This will delete all teams, sessions, and leaderboard data.",
       )
     ) {
-      clearAllDemoData();
-      refresh();
-      setMessage("All data cleared from this device.");
+      try {
+        await clearBackendAdminData();
+        clearAllDemoData();
+        refresh();
+        setMessage("All registered teams, sessions, and leaderboard data were cleared.");
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to clear backend data.",
+        );
+      }
     }
   };
 
