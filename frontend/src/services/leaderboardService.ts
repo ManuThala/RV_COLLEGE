@@ -47,7 +47,6 @@ export const buildLeaderboardEntry = (
     level3Time: levelTimes[3] || undefined,
     level4Time: levelTimes[4] || undefined,
     level5Time: levelTimes[5] || undefined,
-    penalties: 0,
     totalTime,
     incorrectAttempts,
     status,

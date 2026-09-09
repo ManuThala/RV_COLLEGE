@@ -31,7 +31,6 @@ router.put("/:teamId", async (request, response) => {
         players: entry.players,
         currentLevel: entry.currentLevel,
         levelTimes: entry.levelTimes ?? {},
-        penalties: entry.penalties ?? 0,
         totalTime: entry.totalTime ?? 0,
         incorrectAttempts: entry.incorrectAttempts ?? 0,
         status: entry.status,
@@ -66,7 +65,6 @@ router.get("/", async (_request, response) => {
       .sort({
         totalTime: 1,
         incorrectAttempts: 1,
-        penalties: 1,
         createdAtSource: 1,
       })
       .lean();

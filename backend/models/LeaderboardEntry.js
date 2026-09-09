@@ -8,7 +8,6 @@ const leaderboardEntrySchema = new mongoose.Schema(
     players: { type: String, required: true },
     currentLevel: { type: Number, required: true },
     levelTimes: { type: mongoose.Schema.Types.Mixed, default: {} },
-    penalties: { type: Number, default: 0 },
     totalTime: { type: Number, default: 0, index: true },
     incorrectAttempts: { type: Number, default: 0 },
     status: { type: String, required: true, index: true },

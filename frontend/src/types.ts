@@ -153,7 +153,6 @@ export type LeaderboardEntry = {
   level3Time?: number;
   level4Time?: number;
   level5Time?: number;
-  penalties: number;
   totalTime: number;
   incorrectAttempts: number;
   status: "completed" | "playing" | "paused" | "disqualified";
