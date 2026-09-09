@@ -65,7 +65,7 @@ export default function LevelResultScreen({
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-slate-800/50 rounded-lg p-4 border border-cyan-500/20">
             <p className="text-xs text-cyan-100/60 uppercase tracking-wide mb-2">
               Actual Time
@@ -80,14 +80,6 @@ export default function LevelResultScreen({
             </p>
             <p className="text-2xl font-bold text-red-300">
               {result.incorrectAttempts}
-            </p>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-orange-500/20">
-            <p className="text-xs text-orange-100/60 uppercase tracking-wide mb-2">
-              Penalty
-            </p>
-            <p className="text-2xl font-bold text-orange-300">
-              {result.penaltySeconds}s
             </p>
           </div>
           <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/20">

@@ -18,10 +18,6 @@ export const buildLeaderboardEntry = (
       (sum, item) => sum + item.totalTime,
       0,
     );
-  const penalties = Object.values(session.penalties || {}).reduce(
-    (sum, val) => sum + (val ?? 0),
-    0,
-  );
   const incorrectAttempts = Object.values(
     session.incorrectAttempts || {},
   ).reduce((sum, val) => sum + (val ?? 0), 0);
@@ -51,7 +47,7 @@ export const buildLeaderboardEntry = (
     level3Time: levelTimes[3] || undefined,
     level4Time: levelTimes[4] || undefined,
     level5Time: levelTimes[5] || undefined,
-    penalties,
+    penalties: 0,
     totalTime,
     incorrectAttempts,
     status,
@@ -69,7 +65,6 @@ export const upsertLeaderboard = (session: GameSession) => {
     if (a.totalTime !== b.totalTime) return a.totalTime - b.totalTime;
     if (a.incorrectAttempts !== b.incorrectAttempts)
       return a.incorrectAttempts - b.incorrectAttempts;
-    if (a.penalties !== b.penalties) return a.penalties - b.penalties;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
   saveLeaderboard(sorted);

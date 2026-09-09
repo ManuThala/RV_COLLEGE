@@ -91,7 +91,7 @@ function GamePage() {
   // Once a level is successfully completed, the countdown must stop for good — otherwise
   // the interval below keeps ticking behind the "Level Complete!" screen and can fire
   // handleTimeout on an already-passed level, silently turning it into a timeout with an
-  // extra phantom mistake and penalty. This ref is the guard against that.
+  // extra phantom mistake. This ref is the guard against that.
   const levelResolvedRef = useRef(false);
 
   const sensors = useSensors(
@@ -327,21 +327,15 @@ function GamePage() {
     // A timeout eliminates the team instead of advancing it to the next level.
     const existingAttempts =
       current.incorrectAttempts[current.currentLevel] ?? 0;
-    const penalty = (current.penalties[current.currentLevel] ?? 0) + 10;
     const updatedSession: GameSession = { ...current };
     updatedSession.disqualified = true;
     updatedSession.completionStatus = "timed_out";
-    updatedSession.penalties = {
-      ...current.penalties,
-      [current.currentLevel]: penalty,
-    };
     updatedSession.levelResults = {
       ...current.levelResults,
       [current.currentLevel]: summarizeResult(
         current.currentLevel,
         elapsedSeconds,
         existingAttempts,
-        penalty,
         "failed",
       ),
     };
@@ -424,7 +418,6 @@ function GamePage() {
 
     const updatedSession: GameSession = { ...session };
     const attempts = (updatedSession.incorrectAttempts[currentLevel] ?? 0) + 1;
-    const currentPenalty = (updatedSession.penalties[currentLevel] ?? 0) + 5;
 
     let isCorrect = false;
     let correctAnswer = "the correct answer";
@@ -478,20 +471,10 @@ function GamePage() {
         ...updatedSession.incorrectAttempts,
         [currentLevel]: attempts,
       };
-      updatedSession.penalties = {
-        ...updatedSession.penalties,
-        [currentLevel]: 0,
-      };
       updatedSession.disqualified = true;
       updatedSession.completionStatus = "timed_out";
 
-      const failedResult = summarizeResult(
-        currentLevel,
-        0,
-        attempts,
-        0,
-        "failed",
-      );
+      const failedResult = summarizeResult(currentLevel, 0, attempts, "failed");
       failedResult.explanation = `Your team is eliminated because the selected answer was incorrect. Correct answer: ${correctAnswer}${answerExplanation ? ` ${answerExplanation}` : ""}`;
       failedResult.tip = "";
       updatedSession.levelResults = {
@@ -521,11 +504,6 @@ function GamePage() {
       ...updatedSession.incorrectAttempts,
       [currentLevel]: attempts - 1,
     };
-    updatedSession.penalties = {
-      ...updatedSession.penalties,
-      [currentLevel]: currentPenalty - 5,
-    };
-
     const levelStart =
       updatedSession.levelStartTimestamp ?? updatedSession.gameStartTimestamp;
     const elapsedSeconds = Math.max(
@@ -533,12 +511,10 @@ function GamePage() {
       Math.ceil((Date.now() - levelStart) / 1000),
     );
     const finalAttempts = attempts - 1;
-    const finalPenalty = currentPenalty - 5;
     const result = summarizeResult(
       currentLevel,
       elapsedSeconds,
       finalAttempts,
-      finalPenalty,
       "completed",
     );
     updatedSession.levelResults = {

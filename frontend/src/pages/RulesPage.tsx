@@ -48,11 +48,11 @@ function RulesPage() {
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
               <div className="mb-3 flex items-center gap-2 text-amber-200">
                 <TimerReset className="h-5 w-5" />
-                <h3 className="font-semibold text-white">Timer penalties</h3>
+                <h3 className="font-semibold text-white">Elimination rules</h3>
               </div>
               <p className="text-sm text-slate-200">
-                Every incorrect attempt adds penalty time. If the timer expires,
-                the team is eliminated.
+                An incorrect answer or an expired timer eliminates the team
+                immediately.
               </p>
             </div>
             <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5">

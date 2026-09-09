@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const steps = [
   "Register your team with team name and player details.",
-  "Complete all five levels in order, each with a timer and scoring penalty for mistakes.",
+  "Complete all five levels in order before the timer expires.",
   "Each level uses randomized challenge data drawn from the demo pool.",
   "Level 5 requires ordering the correct response sequence, with an 80% accuracy threshold to pass.",
   "Finishing the challenge updates the same-browser leaderboard and result summary.",
@@ -49,8 +49,8 @@ function HowToPlayPage() {
               <div>
                 <h3 className="font-semibold text-white">Timing matters</h3>
                 <p className="text-sm text-slate-200">
-                  Each level has a countdown. If time runs out, the team is
-                  eliminated.
+                  Each level has a countdown. An incorrect answer or an expired
+                  timer eliminates the team.
                 </p>
               </div>
             </div>

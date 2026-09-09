@@ -129,18 +129,12 @@ export default function RulesAcceptancePage() {
             </h3>
             <ul className="list-disc list-inside text-cyan-100/80 space-y-2 ml-2">
               <li>Your score is based on total time across all 5 levels</li>
-              <li>Each wrong answer adds a 5-second penalty</li>
+              <li>An incorrect answer eliminates the team immediately</li>
+              <li>If a level times out, the team is eliminated</li>
               <li>
-                If a level times out, a 10-second penalty is added and the team
-                is eliminated
+                Leaderboard ranking is determined by fastest total time first
               </li>
-              <li>
-                Leaderboard ranking is determined by: fastest time first, then
-                fewest attempts, then lowest penalties
-              </li>
-              <li>
-                Times are cumulative - penalties carry forward to your total
-              </li>
+              <li>Times are cumulative across completed levels</li>
             </ul>
           </section>
 

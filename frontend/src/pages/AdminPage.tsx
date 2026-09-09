@@ -209,9 +209,7 @@ function AdminConsole() {
     }
     const sorted = [...leaderboard].sort((a, b) => {
       if (a.totalTime !== b.totalTime) return a.totalTime - b.totalTime;
-      if (a.incorrectAttempts !== b.incorrectAttempts)
-        return a.incorrectAttempts - b.incorrectAttempts;
-      return a.penalties - b.penalties;
+      return a.incorrectAttempts - b.incorrectAttempts;
     });
     const headers = [
       "Rank",
@@ -224,7 +222,6 @@ function AdminConsole() {
       "L4 Time (s)",
       "L5 Time (s)",
       "Incorrect Attempts",
-      "Penalties (s)",
       "Total Time (s)",
       "Status",
       "Created At",
@@ -240,7 +237,6 @@ function AdminConsole() {
       entry.levelTimes?.[4] ?? 0,
       entry.levelTimes?.[5] ?? 0,
       entry.incorrectAttempts,
-      entry.penalties,
       entry.totalTime,
       entry.status,
       new Date(entry.createdAt).toLocaleString(),

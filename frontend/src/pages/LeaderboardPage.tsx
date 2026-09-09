@@ -62,7 +62,9 @@ function LeaderboardPage() {
         if (a.totalTime !== b.totalTime) return a.totalTime - b.totalTime;
         if (a.incorrectAttempts !== b.incorrectAttempts)
           return a.incorrectAttempts - b.incorrectAttempts;
-        return a.penalties - b.penalties;
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       }),
     [remoteLeaderboard],
   );
@@ -137,7 +139,6 @@ function LeaderboardPage() {
                     <th className="px-4 py-3 text-right">L3</th>
                     <th className="px-4 py-3 text-right">L4</th>
                     <th className="px-4 py-3 text-right">L5</th>
-                    <th className="px-4 py-3 text-right">Penalties</th>
                     <th className="px-4 py-3 text-right">Total Time</th>
                     <th className="px-4 py-3 text-center">Status</th>
                   </tr>
@@ -172,9 +173,6 @@ function LeaderboardPage() {
                             : "—"}
                         </td>
                       ))}
-                      <td className="px-4 py-3 text-right text-orange-300">
-                        {entry.penalties}s
-                      </td>
                       <td className="px-4 py-3 text-right font-bold text-white">
                         {entry.totalTime}s
                       </td>

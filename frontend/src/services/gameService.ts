@@ -173,7 +173,6 @@ export const buildSessionFromTeam = (
     levelStartTimestamp: now,
     answerSubmissions: {},
     incorrectAttempts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-    penalties: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     levelCompletionTimes: {},
     totalTime: 0,
     completionStatus: "in_progress",
@@ -181,7 +180,6 @@ export const buildSessionFromTeam = (
     levelResults: {},
     currentLevelLocked: false,
     challengeStartedAt: now,
-    timeoutPenaltyApplied: { 1: false, 2: false, 3: false, 4: false, 5: false },
     displayOrder: {},
     rejectedOptions: {},
   };
@@ -351,34 +349,25 @@ export const summarizeResult = (
   level: number,
   actualSeconds: number,
   incorrectAttempts: number,
-  penaltySeconds: number,
   status: "completed" | "timeout" | "failed",
 ): LevelResult => {
   const label = LEVEL_DEFINITIONS[level - 1]?.name ?? `Level ${level}`;
-  const totalTime = Math.max(0, actualSeconds + penaltySeconds);
 
   return {
     level,
     label,
     actualTime: actualSeconds,
     incorrectAttempts,
-    penaltySeconds,
-    totalTime,
+    totalTime: actualSeconds,
     status,
     explanation:
       status === "timeout"
-        ? "The level timed out and the timeout penalty was applied."
+        ? "The level timed out."
         : "Challenge objective completed successfully.",
     tip: "Stay calm, read carefully, and prevent avoidable mistakes.",
     completedAt: new Date().toISOString(),
   };
 };
-
-export const calculateLevelScore = (
-  _level: number,
-  actualTime: number,
-  penalties: number,
-): number => actualTime + penalties;
 
 export const getCurrentLevelDefinition = (level: number) =>
   LEVEL_DEFINITIONS[level - 1];
