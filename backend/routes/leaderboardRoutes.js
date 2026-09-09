@@ -13,12 +13,10 @@ router.put("/:teamId", async (request, response) => {
 
   const entry = request.body?.entry;
   if (!entry?.id || entry.teamId !== request.params.teamId) {
-    return response
-      .status(400)
-      .json({
-        success: false,
-        message: "A valid leaderboard entry is required.",
-      });
+    return response.status(400).json({
+      success: false,
+      message: "A valid leaderboard entry is required.",
+    });
   }
 
   try {

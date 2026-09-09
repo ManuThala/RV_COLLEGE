@@ -53,6 +53,10 @@ export const saveTeam = (team: Team) => {
 
 export const getTeams = (): Team[] => readJson<Team[]>(TEAM_LIST_KEY, []);
 
+export const replaceTeams = (teams: Team[]) => {
+  window.localStorage.setItem(TEAM_LIST_KEY, JSON.stringify(teams));
+};
+
 export const getCurrentTeam = (): Team | null => {
   const team = readJson<Team | null>("cybershield_current_team", null);
   return team;
@@ -149,7 +153,10 @@ export const getDemoPin = (): string => {
 // so a refresh of /admin doesn't force re-entering the PIN, but closing the tab clears it.
 export const isAdminAuthed = (): boolean => {
   try {
-    return window.sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+    return (
+      window.sessionStorage.getItem(ADMIN_AUTH_KEY) === "true" &&
+      Boolean(window.sessionStorage.getItem(ADMIN_TOKEN_KEY))
+    );
   } catch {
     return false;
   }
@@ -160,6 +167,24 @@ export const setAdminAuthed = (value: boolean) => {
     window.sessionStorage.setItem(ADMIN_AUTH_KEY, "true");
   } else {
     window.sessionStorage.removeItem(ADMIN_AUTH_KEY);
+  }
+};
+
+const ADMIN_TOKEN_KEY = "cybershield_admin_token";
+
+export const getAdminToken = (): string | null => {
+  try {
+    return window.sessionStorage.getItem(ADMIN_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const setAdminToken = (token: string | null) => {
+  if (token) {
+    window.sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+  } else {
+    window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
   }
 };
 

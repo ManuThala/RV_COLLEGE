@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Ban,
   CheckCircle2,
@@ -52,6 +52,7 @@ import {
 } from "../services/gameService";
 import { quizSets } from "../data/quizSets";
 import type { QuizSetLevelKey, Winner } from "../types";
+import { syncAdminData } from "../services/adminService";
 
 type QuestionRow = {
   id: string;
@@ -94,6 +95,18 @@ function AdminConsole() {
   const [, forceRefresh] = useState(0);
 
   const refresh = () => forceRefresh((t) => t + 1);
+
+  useEffect(() => {
+    void syncAdminData()
+      .then(() => refresh())
+      .catch((error) =>
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to load admin data from the backend.",
+        ),
+      );
+  }, []);
 
   const teams = getTeams();
   const leaderboard = getLeaderboard();
