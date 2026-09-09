@@ -13,6 +13,7 @@ const incidentScenarioSchema = new mongoose.Schema(
     level: { type: Number, default: 5, immutable: true },
     type: { type: String, default: "incident-response", immutable: true },
     title: { type: String, default: "Secure the Network" },
+    description: { type: String, required: true, trim: true },
     timerSeconds: { type: Number, default: 60, immutable: true },
     actions: {
       type: [actionSchema],
