@@ -167,6 +167,13 @@ function RegisterPage() {
                   wait for them to finish, or ask an admin to reset the session,
                   before registering a new team.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/challenge")}
+                  className="mt-3 rounded-lg border border-amber-300/40 px-3 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-200 hover:bg-amber-200/10"
+                >
+                  Resume {blockingSession.teamName}'s session
+                </button>
               </div>
             </div>
           )}
