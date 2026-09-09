@@ -1,0 +1,68 @@
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import { connectDatabase } from "../config/database.js";
+import { IncidentScenario } from "../models/IncidentScenario.js";
+
+dotenv.config();
+
+const scenario = (number, title, description, actions, correctSequence, explanation) => ({
+  level: 5,
+  type: "incident-response",
+  title,
+  description,
+  timerSeconds: 60,
+  actions: actions.map((text, index) => ({ id: String.fromCharCode(65 + index), text })),
+  correctSequence,
+  explanation,
+  difficulty: "Medium",
+  active: true,
+  importKey: `L5-Q${String(number).padStart(2, "0")}`,
+});
+
+const scenarios = [
+  scenario(1, "Ransomware Attack", "Your laptop shows that files are encrypted and payment is demanded.", ["Disconnect from the network", "Inform the IT/security team", "Preserve evidence and report it", "Wait and see if files recover", "Pay the ransom immediately"], ["A", "B", "C", "D", "E"], "Contain the incident, notify security, preserve evidence, and never pay or ignore the ransom demand."),
+  scenario(2, "Compromised Email Account", "Emails are being sent from your account that you did not write.", ["Change your email password", "Warn your contacts", "Remove unknown login sessions", "Report the compromised account", "Continue using the account"], ["A", "C", "D", "B", "E"], "Secure the account, revoke unknown sessions, report the compromise, and warn contacts."),
+  scenario(3, "Phishing Email", "A bank email asks you to click a link and verify your account immediately.", ["Click the link to check it", "Avoid clicking the link", "Report the suspicious email", "Verify through the official bank channel", "Enter details if the page looks genuine"], ["B", "C", "D", "A", "E"], "Do not use the suspicious link. Report it and verify only through an official channel."),
+  scenario(4, "Bank Account Hacked", "An SMS says ₹25,000 was transferred from your bank account without your approval.", ["Contact the bank immediately", "Share the OTP with the caller", "Block or freeze the account/card", "Change your banking password", "Wait for the bank statement"], ["A", "C", "D", "E", "B"], "Contact the bank, block access, change credentials, and never share an OTP."),
+  scenario(5, "Malware Infection", "Your computer is slow and unknown applications open by themselves.", ["Disconnect from the internet", "Inform IT/security", "Continue working normally", "Run an approved security scan", "Download random antivirus software"], ["A", "B", "D", "C", "E"], "Isolate the device, notify security, and use approved scanning tools."),
+  scenario(6, "Social Media Account Takeover", "You cannot log in and the profile picture and bio have changed.", ["Use official account recovery", "Warn your followers", "Report the hacked account", "Change the password after recovery", "Pay someone to recover it"], ["A", "C", "D", "B", "E"], "Use official recovery, report the takeover, change the password, and warn followers."),
+  scenario(7, "Suspicious USB Drive", "You find an unknown USB drive in an office parking area.", ["Plug it into your laptop", "Give it to IT/security", "Open files to identify the owner", "Keep it disconnected", "Copy files to your computer"], ["D", "B", "A", "C", "E"], "Keep unknown media disconnected and hand it to security. Never inspect it on your own device."),
+  scenario(8, "Data Breach", "A confidential company file was accessible to unauthorized people.", ["Inform IT/security immediately", "Preserve relevant evidence", "Delete the file permanently", "Stop further unauthorized access", "Post about it online"], ["D", "A", "B", "C", "E"], "Stop access first, notify security, preserve evidence, and do not delete or publish evidence."),
+  scenario(9, "Fake IT Support Call", "Someone claiming to be IT asks for your password.", ["Refuse to share your password", "Ask for their ID and share it", "Verify through official IT channels", "Report the suspicious call", "Share other personal information"], ["A", "C", "D", "B", "E"], "Refuse credential requests, verify independently, and report the impersonation."),
+  scenario(10, "Phishing SMS", "A parcel SMS asks for ₹25 through a shortened link.", ["Click the link", "Avoid clicking it", "Check the courier's official app/site", "Report or delete the message", "Enter card details if needed"], ["B", "C", "D", "A", "E"], "Avoid the link, verify through the official service, and report or delete the message."),
+  scenario(11, "Lost Smartphone", "Your phone contains banking and email apps and is lost while travelling.", ["Remotely lock the phone", "Contact your bank/operator", "Change important passwords", "Report the lost device", "Wait for someone to return it"], ["A", "B", "C", "D", "E"], "Lock the device, contact providers, change credentials, and report the loss."),
+  scenario(12, "Suspicious Login Alert", "An email account was accessed from an unfamiliar location.", ["Verify the login", "Change your password", "Remove unknown sessions", "Enable two-factor authentication", "Ignore the alert"], ["A", "B", "C", "D", "E"], "Investigate the alert, change credentials, revoke sessions, and enable MFA."),
+  scenario(13, "Fake Banking Website", "You open a bank website that looks almost identical to the official one.", ["Enter your username", "Close the suspicious website", "Use the official bank app/site", "Report the fake website", "Enter your OTP to verify it"], ["B", "C", "D", "A", "E"], "Close the fake site, use the official channel, and report it. Never enter credentials or OTPs."),
+  scenario(14, "Business Email Fraud", "An email apparently from your manager requests an urgent ₹2 lakh transfer.", ["Transfer the money immediately", "Verify through another channel", "Check the sender details", "Report the suspicious request", "Transfer first and ask later"], ["C", "B", "D", "A", "E"], "Check the sender, verify out-of-band, report the fraud, and do not transfer money."),
+  scenario(15, "Browser Hijacking", "Your browser homepage changes and redirects to unfamiliar websites.", ["Disconnect from the internet", "Inform IT/security", "Keep clicking the redirects", "Remove suspicious extensions", "Download a random browser cleaner"], ["A", "B", "D", "C", "E"], "Disconnect, notify security, and remove suspicious software through approved procedures."),
+  scenario(16, "Confidential File Sent to Wrong Person", "A confidential document was emailed to the wrong recipient.", ["Inform IT/data security", "Recall or restrict the email", "Ask the recipient to delete it", "Ignore the mistake", "Forward it to colleagues"], ["A", "B", "C", "D", "E"], "Notify data security, restrict the message, request deletion, and never spread it further."),
+  scenario(17, "Suspicious QR Code", "A public poster promises ₹1,000 cashback for scanning a QR code.", ["Scan the QR immediately", "Check the offer's legitimacy", "Avoid sharing OTPs or bank details", "Close suspicious pages", "Share the QR with friends"], ["B", "A", "C", "D", "E"], "Check legitimacy before interacting, protect credentials, close suspicious pages, and do not spread it."),
+  scenario(18, "WhatsApp Account Compromise", "WhatsApp logs out and someone is trying to register your number elsewhere.", ["Share the verification code", "Re-register through WhatsApp", "Enable two-step verification", "Warn important contacts", "Report the compromise"], ["B", "C", "E", "D", "A"], "Re-register officially, enable two-step verification, report the compromise, and warn contacts."),
+  scenario(19, "Public Wi-Fi Attack", "Free café Wi-Fi warns that the network may be unsafe.", ["Disconnect from the network", "Avoid sensitive accounts", "Switch to mobile data", "Change passwords if exposed", "Continue banking normally"], ["A", "C", "B", "D", "E"], "Disconnect, use mobile data, avoid sensitive activity, and change exposed passwords."),
+  scenario(20, "Fake Job Offer", "A WhatsApp job offer asks for a ₹5,000 registration fee.", ["Pay the registration fee", "Verify the company officially", "Avoid sharing financial details", "Report and block the sender", "Ask for the sender's bank details"], ["B", "C", "D", "A", "E"], "Verify the employer, protect financial information, and report the scam."),
+  scenario(21, "Cloud Account Breach", "Someone downloaded confidential files from your cloud storage.", ["Revoke suspicious access", "Change your password", "Inform IT/security", "Review sharing permissions", "Ignore the alert"], ["C", "A", "B", "D", "E"], "Notify security, revoke access, change credentials, and review sharing permissions."),
+  scenario(22, "ATM Fraud", "You notice an unauthorized transaction after using an ATM.", ["Contact the bank", "Block the card", "Check recent transactions", "Report the unauthorized transaction", "Share your PIN with the caller"], ["A", "B", "C", "D", "E"], "Contact the bank, block the card, verify activity, report fraud, and never share your PIN."),
+  scenario(23, "Ransomware on Office Network", "Several employees cannot open shared files and ransom messages appear.", ["Disconnect affected computers", "Inform security/IT", "Continue using the network", "Follow backup/recovery procedures", "Pay the ransom immediately"], ["A", "B", "D", "C", "E"], "Contain affected systems, notify security, follow recovery procedures, and do not continue or pay."),
+  scenario(24, "Deepfake/Impersonation Attack", "A video call appears to show an executive requesting confidential information urgently.", ["Share the information", "Verify through another channel", "Refuse to share confidential data", "Report the suspicious incident", "Upload the video publicly"], ["C", "B", "D", "A", "E"], "Refuse disclosure, verify independently, and report the suspected impersonation."),
+  scenario(25, "Password Reuse Breach", "A breached website used the same password as your email.", ["Change the reused password", "Change it on other accounts", "Enable two-factor authentication", "Wait for suspicious activity", "Use unique passwords"], ["A", "B", "E", "C", "D"], "Change reused credentials everywhere, use unique passwords, enable MFA, and do not wait."),
+  scenario(26, "Fake Customer Support", "An unofficial support number asks for your OTP.", ["Refuse to share the OTP", "End the call", "Find the official support number", "Report the suspicious number", "Give the OTP if they know your details"], ["A", "B", "C", "D", "E"], "Refuse the OTP, end the call, use official support, and report the scam."),
+  scenario(27, "Employee Laptop Theft", "A work laptop is stolen from a vehicle.", ["Inform your organization", "Remotely lock/wipe the laptop", "Change important passwords", "Report the theft", "Wait to see if it returns"], ["A", "B", "C", "D", "E"], "Notify the organization, lock or wipe the device, change credentials, and report the theft."),
+  scenario(28, "Suspicious Attachment", "An unexpected Salary_Revision.xlsx attachment arrives from an unknown sender.", ["Open the attachment", "Do not open it", "Verify the sender", "Report the suspicious email", "Forward it to colleagues"], ["B", "C", "D", "A", "E"], "Do not open it; verify the sender, report the message, and do not forward it."),
+  scenario(29, "Personal Information Leak", "Your phone number, email, and other personal information are posted publicly without permission.", ["Document the exposed information", "Report the exposure", "Secure potentially affected accounts", "Change passwords and strengthen security", "Publish more information to confuse attackers"], ["A", "B", "C", "D", "E"], "Document and report the exposure, secure affected accounts, and strengthen authentication."),
+  scenario(30, "Multiple Accounts Compromised", "Suspicious activity appears on your email, social media, and shopping accounts.", ["Secure your primary email first", "Use unique passwords", "Enable two-factor authentication", "Review and revoke unknown sessions", "Ignore the incidents"], ["A", "B", "D", "C", "E"], "Secure the primary email, use unique credentials, revoke sessions, and enable MFA."),
+];
+
+const run = async () => {
+  const connected = await connectDatabase();
+  if (!connected) throw new Error("MongoDB is not connected.");
+  await IncidentScenario.deleteMany({ level: 5 });
+  await IncidentScenario.insertMany(scenarios);
+  console.log(`Replaced Level 5 scenarios with ${scenarios.length} records.`);
+  await mongoose.disconnect();
+};
+
+run().catch(async (error) => {
+  console.error(error.message);
+  await mongoose.disconnect();
+  process.exitCode = 1;
+});

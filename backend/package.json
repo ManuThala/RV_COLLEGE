@@ -10,7 +10,8 @@
     "seed:level2": "node scripts/seedLevel2.js",
     "seed:level3": "node scripts/seedLevel3.js",
     "seed:level4": "node scripts/seedLevel4.js",
-    "seed:level5": "node scripts/seedLevel5.js"
+    "seed:level5": "node scripts/seedLevel5.js",
+    "replace:level5": "node scripts/replaceLevel5Scenarios.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
